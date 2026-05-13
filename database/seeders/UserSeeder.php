@@ -27,7 +27,7 @@ class UserSeeder extends Seeder
         // Pacientes
         User::create([
             'name'     => 'Adrian Romero',
-            'email'    => 'adriancaef@gmail.com',
+            'email'    => 'adrian@medqueue.com',
             'password' => 'password',
             'role'     => 'patient',
         ]);

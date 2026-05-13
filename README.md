@@ -1,59 +1,108 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# MedQueue API 🏥
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+REST API para la gestión de citas médicas, construida con Laravel 11 y desplegada en AWS.
 
-## About Laravel
+## Stack Técnico
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Backend:** PHP 8.2 + Laravel 11
+- **Autenticación:** Laravel Sanctum (token-based)
+- **Base de datos:** MySQL 8.0
+- **Colas:** Laravel Jobs (compatible con AWS SQS)
+- **Infraestructura:** Docker (local) / AWS Elastic Beanstalk + RDS (producción)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Arquitectura
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Client (Vue 3)
+│
+▼
+Laravel API  ──►  MySQL (RDS en producción)
+│
+▼
+Queue Worker ──►  Jobs asíncronos (SQS en producción)
 
-## Learning Laravel
+## Decisiones técnicas
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- **Sanctum sobre Passport:** Para una API SPA/mobile, Sanctum es más ligero y suficiente. Passport añade complejidad innecesaria sin OAuth.
+- **Jobs en cola:** El envío de notificaciones es asíncrono para no bloquear la respuesta de la API. En producción se conectaría a AWS SQS cambiando `QUEUE_CONNECTION=sqs` en el `.env`.
+- **Roles en tabla users:** Para este scope, un campo `enum` es suficiente y evita joins innecesarios. Con más roles se migraría a una tabla `roles` con Spatie Permission.
+- **Form Requests:** La validación está separada del controlador para mantenerlo limpio y reutilizable.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## Endpoints
 
-## Laravel Sponsors
+### Públicos
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/api/register` | Registro de usuario |
+| POST | `/api/login` | Login |
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+### Protegidos (Bearer Token)
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| POST | `/api/logout` | Cerrar sesión |
+| GET | `/api/me` | Usuario autenticado |
+| GET | `/api/doctors` | Listado de médicos |
+| GET | `/api/appointments` | Citas del usuario |
+| POST | `/api/appointments` | Crear cita (paciente) |
+| GET | `/api/appointments/{id}` | Detalle de cita |
+| PUT | `/api/appointments/{id}` | Actualizar estado (médico) |
+| DELETE | `/api/appointments/{id}` | Eliminar cita |
 
-### Premium Partners
+## Instalación local
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### Requisitos
+- Docker
+- Docker Compose
 
-## Contributing
+### Pasos
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```bash
+# 1. Clona el repositorio
+git clone https://github.com/AdrianRomeroRamirez/medqueue-api.git
+cd medqueue-api
 
-## Code of Conduct
+# 2. Levanta los contenedores
+docker compose up -d --build
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+# 3. Copia el archivo de entorno
+cp .env.example .env
 
-## Security Vulnerabilities
+# 4. Configura la base de datos en .env
+DB_CONNECTION=mysql
+DB_HOST=db
+DB_PORT=3306
+DB_DATABASE=medqueue
+DB_USERNAME=medqueue
+DB_PASSWORD=secret
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+# 5. Genera la clave de la aplicación
+docker compose exec app php artisan key:generate
 
-## License
+# 6. Ejecuta las migraciones y seeders
+docker compose exec app php artisan migrate --seed
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+# 7. La API estará disponible en http://localhost:8000
+```
+
+### Usuarios de prueba
+
+| Nombre | Email | Password | Rol |
+|--------|-------|----------|-----|
+| Dr. García | garcia@medqueue.com | password | doctor |
+| Dra. Martínez | martinez@medqueue.com | password | doctor |
+| Adrian Romero | adrian@medqueue.com | password | patient |
+| Laura Sánchez | laura@medqueue.com | password | patient |
+
+### Procesar colas manualmente
+
+```bash
+docker compose exec app php artisan queue:work
+```
+
+## Qué mejoraría con más tiempo
+
+- Tests con PHPUnit (feature tests por endpoint)
+- Envío real de emails con Laravel Mail + AWS SES
+- Paginación en el listado de citas
+- Swagger/OpenAPI para documentación de la API
+- Rate limiting por usuario
+- Política de autorización con Laravel Gates para validar que el médico solo edita sus propias citas
