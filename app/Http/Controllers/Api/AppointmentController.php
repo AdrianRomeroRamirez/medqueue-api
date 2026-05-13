@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use App\Models\User;
 use App\Http\Requests\StoreAppointmentRequest;
+use App\Jobs\SendAppointmentConfirmation;
 use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
@@ -32,7 +33,11 @@ class AppointmentController extends Controller
             'patient_id' => $request->user()->id,
         ]);
 
-        return response()->json($appointment->load('doctor'), 201);
+        $appointment->load('patient', 'doctor');
+
+        SendAppointmentConfirmation::dispatch($appointment);
+
+        return response()->json($appointment, 201);
     }
 
     public function show(Appointment $appointment)
