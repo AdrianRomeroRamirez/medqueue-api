@@ -28,4 +28,4 @@ chmod -R 775 /var/www/html/bootstrap/cache
 php artisan config:clear
 
 # Arrancar php-fpm y nginx
-php-fpm -D -y /usr/local/etc/php-fpm.d/www.conf && sleep 1 && nginx -g 'daemon off;'
+php-fpm -D && sleep 1 && nginx -g 'daemon off;'
