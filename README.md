@@ -8,7 +8,6 @@ REST API para la gestión de citas médicas, construida con Laravel 11 y despleg
 - **Autenticación:** Laravel Sanctum (token-based)
 - **Base de datos:** MySQL 8.0
 - **Colas:** Laravel Jobs (compatible con AWS SQS)
-- **Infraestructura:** Docker (local) / AWS Elastic Beanstalk + RDS (producción)
 
 ## Arquitectura
 
@@ -19,6 +18,22 @@ Laravel API  ──►  MySQL (RDS en producción)
 │
 ▼
 Queue Worker ──►  Jobs asíncronos (SQS en producción)
+
+## 🚀 Demo en producción
+
+- **Frontend:** https://medqueue-app-example.netlify.app
+- **API:** https://medqueue-api.onrender.com
+- **Base de datos:** AWS RDS MySQL (eu-west-1)
+
+## ☁️ Infraestructura
+
+La arquitectura objetivo para producción real es:
+- **API:** AWS Elastic Beanstalk (configuración incluida en `.ebextensions`)
+- **Base de datos:** AWS RDS MySQL
+- **Colas:** AWS SQS (cambiar `QUEUE_CONNECTION=sqs` en `.env`)
+- **Assets:** AWS S3 + CloudFront
+
+Para esta demo se usa **Render** en lugar de Elastic Beanstalk por una limitación técnica de HTTPS sin dominio propio. La configuración de AWS está igualmente documentada y funcional en el repositorio.
 
 ## Decisiones técnicas
 
