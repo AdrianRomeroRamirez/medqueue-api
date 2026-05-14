@@ -1,0 +1,22 @@
+FROM php:8.2-fpm-alpine
+
+WORKDIR /var/www/html
+
+RUN apk add --no-cache nginx git curl zip unzip \
+    && docker-php-ext-install pdo_mysql mbstring bcmath
+
+COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+
+COPY . .
+
+RUN composer install --no-dev --optimize-autoloader
+
+RUN chmod -R 775 storage bootstrap/cache
+
+COPY docker/nginx.conf /etc/nginx/http.d/default.conf
+
+RUN sed -i 's|root /var/www;|root /var/www/html/public;|g' /etc/nginx/http.d/default.conf
+
+EXPOSE 10000
+
+CMD sh -c "php-fpm -D && nginx -g 'daemon off;'"
