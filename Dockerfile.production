@@ -2,7 +2,7 @@ FROM php:8.2-fpm-alpine
 
 WORKDIR /var/www/html
 
-RUN apk add --no-cache nginx git curl zip unzip \
+RUN apk add --no-cache nginx git curl zip unzip oniguruma-dev libxml2-dev \
     && docker-php-ext-install pdo_mysql mbstring bcmath
 
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
